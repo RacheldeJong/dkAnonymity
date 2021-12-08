@@ -1,7 +1,7 @@
 #include "dk-anonymity.h"
 
 int print_eq_class = 0;
-int print_statistics = 3;
+int print_statistics = 1;
 int heuristic_choice = 0;
 size_t iso_checks, nr_can1;
 
@@ -284,10 +284,10 @@ std::vector< std::vector< int > > get_equivalence_classes(sparsegraph sg, const 
       // Print statistics
       if(print_statistics >= 2){
          printf("N%d of %d:\n", i, d);
-         printf("time, %d, %f\n", i, ((double)(clock() - (double)t2))/CLOCKS_PER_SEC);
-         printf("k, %d, %d\n", i, get_k(eq));
-         printf("can nbh1 %ld\n", it_can1);
-         printf("iso checks %ld\n", it_iso_checks);
+         printf("time it %d: %f\n", i, ((double)(clock() - (double)t2))/CLOCKS_PER_SEC);
+         printf("k it %d: %d\n", i, get_k(eq));
+         printf("can nbh1 it %d: %ld\n", i, it_can1);
+         printf("iso checks it %d: %ld\n", i, it_iso_checks);
          print_statistics_eq(eq, i);
       }
       if(print_eq_class){
@@ -296,9 +296,10 @@ std::vector< std::vector< int > > get_equivalence_classes(sparsegraph sg, const 
       fflush(stdout);
    }
    if(print_statistics >= 1){
-      printf("tot time %f\n", t1);
-      printf("tot can nbh1 %ld\n", tot_can1);
-      printf("tot iso checks %ld\n", tot_iso_checks);
+      printf("tot time: %f\n", t1);
+      printf("final k: %d\n", get_k(eq));
+      printf("tot can nbh1: %ld\n", tot_can1);
+      printf("tot iso checks: %ld\n", tot_iso_checks);
       if(print_statistics == 1)
          print_statistics_eq(eq, d);
    }
@@ -490,10 +491,10 @@ std::vector< std::vector< int > > get_equivalence_classes_directed(sparsegraph s
       // Print statistics
       if(print_statistics >= 2){
          printf("N%d of %d:\n", i, d);
-         printf("time, %d, %f\n", i, ((double)(clock() - (double)t2))/CLOCKS_PER_SEC);
-         printf("k, %d, %d\n", i, get_k(eq));
-         printf("can nbh1 %ld\n", it_can1);
-         printf("iso checks %ld\n", it_iso_checks);
+         printf("time it %d: %f\n", i, ((double)(clock() - (double)t2))/CLOCKS_PER_SEC);
+         printf("k it %d: %d\n", i, get_k(eq));
+         printf("can nbh1 it %d: %ld\n", i, it_can1);
+         printf("iso checks it %d: %ld\n", i, it_iso_checks);
          print_statistics_eq(eq, i);
       }
       if(print_eq_class){
@@ -531,11 +532,13 @@ int get_k(const std::vector< std::vector< int > > eclasses){
 }
 
 void print_equivalence_classes(const std::vector< std::vector < int > > eclasses){
+   printf("Start equivalence classes.\n");
    for(auto it : eclasses){
       for(auto it2 : it)
          printf("%d ", it2);
       printf("\n");
    }
+   printf("End equivalence classes.\n");
 }
 
 void print_equivalence_classes_to_file(const std::vector < std::vector< int > > eclasses, char * file_name){
@@ -564,13 +567,14 @@ void print_statistics_eq(const std::vector <std::vector <int > > eclasses, const
       if(cur < min) min = cur;
       if(cur > max) max = cur;
    }
-   printf("Equivalence partition statistics\n");
-   printf("It %d Min size: %d\n", it, min);
-   printf("It %d Max size: %d\n", it, max);
-   printf("All sizes (size, occurences):\n  ");
-   printf("eq, %d, ", it);
+   //printf("Equivalence partition statistics\n");
+   //printf("It %d Min size: %d\n", it, min);
+   //printf("It %d Max size: %d\n", it, max);
+   //printf("All sizes (size, occurences):\n  ");
+   printf("eq %d: ", it);
    for(auto it : sizes){
-      printf("%d, %d, ", it.first, it.second);
+      printf("[%d, %d], ", it.first, it.second);
    }
    printf("\n");
+   fflush(stdout);
 }

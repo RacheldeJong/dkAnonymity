@@ -38,6 +38,9 @@ int read_n(const char* file_name){
 
 // Print settings used
 void print_info(sparsegraph sg1, const int directed, const int distance){
+   bool print_graph_info = true;
+   if(print_graph_info == false) return;
+   
    printf("Info:\n");
    printf("- Graph contains %d nodes\n", sg1.nv);
    printf("- Graph contains %ld edges\n", sg1.nde);
@@ -103,7 +106,7 @@ int main(int argc, char *argv[]){
    
    input_file = argv[1];
    parse_input(argc, argv, directed, distance);
-   printf("Graph file: %s\n", input_file);
+   //printf("Graph file: %s\n", input_file);
 
    n = read_n(input_file);
    m = SETWORDSNEEDED(n);
