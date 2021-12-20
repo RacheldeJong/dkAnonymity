@@ -17,6 +17,9 @@
 extern int heuristic_choice;
 extern int print_eq_class;
 extern int print_statistics;
+extern int do_twin_node_check;
+extern int print_time_can_labelling;
+extern int twin_nbs;
 
 // Returns true if sg1 and sg2 are the same wrt nodes v1 and v2 i.e.:
 // - sg1 and sg2 are isomorphic
@@ -62,9 +65,30 @@ std::vector< std::vector< int > > get_equivalence_classes_directed(sparsegraph s
 std::vector< std::vector< int > > split_equivalence_class(sparsegraph sg, std::vector <int> eclass, const int d);
 std::vector< std::vector< int > > split_equivalence_class_directed(sparsegraph sgo, sparsegraph sgi, std::vector <int> eclass, const int d);
 
+// Find all twin nodes in sg with degree at most max_nbs and store the result
+// in twin_node_map, which is updated.
+// 
+// @sg: Sparse graph
+// @twin_node_map: contains mapping node_id -> set of nodes to which node_id is a twin
+//
+// @returns: the set of all nodes such that none of them have a twin node in this set
+std::vector<int> twin_node_check(sparsegraph sg, std::map<int, std::set<int>> &twin_node_map);
+
+// Add twin nodes to equivalence class. When the twin node check is done, 
+// they are kept out of the equivalence class to split. This function places
+// twin  nodes in the correct equivalence class
+// Used in split_equivalence_class.
+//
+// @eq: the equivalence classes
+// @twin_node_map: contains mapping node_id -> set of nodes to which node_id is a twin
+//
+// @returns: equivalence class with twin nodes added
+//
+std::vector< std::vector<int> >process_twin_nodes(std::vector< std::vector<int> >eq, std::map<int, std::set<int>>twin_node_map);
+
 // Prints the given equivalence class
 //
-// @ eclasses: The equivalence classess
+// @eclasses: The equivalence classess
 //
 void print_equivalence_classes(const std::vector< std::vector < int > > eclasses);
 

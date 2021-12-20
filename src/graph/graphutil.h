@@ -46,7 +46,6 @@ std::unordered_set<int> get_neighborhood_nodes(const sparsegraph sg, const int v
 void get_degree_distribution(const sparsegraph sg, std::map<int, size_t>& degrees);
 void get_degree_distribution_directed(const sparsegraph sg, std::map<int, size_t>& outdegs);
 
-
 // Simple function to print sparse graph. Format:
 // from: to, to,
 // 0: 1, 2, 

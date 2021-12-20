@@ -3,7 +3,7 @@
 // 
 // Command line input: ./path-to/graph [optional arguments]
 // Author: Rachel de Jong
-// Date: 25-8-2021
+//
 
 #include "util.h"
 #include "./graph/graphgen.h"
@@ -52,15 +52,19 @@ void print_info(sparsegraph sg1, const int directed, const int distance){
    if(heuristic_choice == 1) printf("None.\n");
    else if(heuristic_choice == 2) printf("out-degree distribution\n");
    else printf("Nr. nodes and edges\n");
-   
-   printf("- Print equivalence classes = %d: \n", print_eq_class);
+   printf("- Twin node check : %d\n", do_twin_node_check);
+   printf("  max neighbours : %d\n", twin_nbs);
+
    printf("- Print statistics classes = %d: ", print_statistics);
    
    if(heuristic_choice <= 0) printf("none.\n\n");
-   else if(print_statistics == 1) printf("Final statistics only\n\n");
-   else if(print_statistics == 2) printf("Per iteration\n\n");
-   else if(print_statistics == 3) printf("Per class split\n\n");
-   else if(print_statistics >= 4) printf("All, including updates\n\n");
+   else if(print_statistics == 1) printf("Final statistics only\n");
+   else if(print_statistics == 2) printf("Per iteration\n");
+   else if(print_statistics == 3) printf("Per class split\n");
+   else if(print_statistics >= 4) printf("All, including updates\n");
+      
+   printf("- Print equivalence classes = %d\n", print_eq_class);
+   printf("- Print canonical labelling runtime = %d\n\n", print_time_can_labelling);
 }
 
 // Parse command line arguments
@@ -68,8 +72,7 @@ void parse_input(int argc, char* argv[], int & directed, int &distance){
 
    for(int i =1; i < argc; i++){
       if(strcmp(argv[i], "-dir") == 0){
-         directed = atoi(argv[i + 1]);
-         i++;
+         directed = 1;
       }
       else if(strcmp(argv[i], "-d") == 0){
          distance = (atoi(argv[i + 1]));
@@ -80,12 +83,21 @@ void parse_input(int argc, char* argv[], int & directed, int &distance){
          i++;
       }
       else if(strcmp(argv[i], "-eq") == 0){
-         print_eq_class = atoi(argv[i + 1]);
-         i++;
+         print_eq_class = 1;
       }
       else if(strcmp(argv[i], "-s") == 0){
          print_statistics = atoi(argv[i + 1]);
          i++;
+      }
+      else if(strcmp(argv[i], "-c") == 0){
+         do_twin_node_check = 1;
+      }
+      else if(strcmp(argv[i], "-cs") == 0){
+         twin_nbs = atoi(argv[i + 1]);
+         i++;
+      }
+      else if(strcasecmp(argv[i], "-t") == 0){
+         print_time_can_labelling = 1;
       }
    }
 }
@@ -106,7 +118,6 @@ int main(int argc, char *argv[]){
    
    input_file = argv[1];
    parse_input(argc, argv, directed, distance);
-   //printf("Graph file: %s\n", input_file);
 
    n = read_n(input_file);
    m = SETWORDSNEEDED(n);
