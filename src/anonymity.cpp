@@ -3,6 +3,8 @@
 // 
 // Command line input: ./path-to/graph [optional arguments]
 // Author: Rachel de Jong
+// 
+// Last edited: 11-5-2022
 //
 
 #include "util.h"
@@ -37,7 +39,7 @@ int read_n(const char* file_name){
 }
 
 // Print settings used
-void print_info(sparsegraph sg1, const int directed, const int distance){
+void print_info(const sparsegraph sg1, const int directed, const int distance){
    bool print_graph_info = true;
    if(print_graph_info == false) return;
    
@@ -46,18 +48,23 @@ void print_info(sparsegraph sg1, const int directed, const int distance){
    printf("- Graph contains %ld edges\n", sg1.nde);
    printf("- Directed: %d\n", directed);
    printf("- Distance: %d\n", distance);
-   printf("- Heuristics choice = %d: ", heuristic_choice);
+   printf("- Configuration choice = %d: ", conf_choice);
    
-   if(heuristic_choice == 0) printf("Naive.\n");
-   if(heuristic_choice == 1) printf("None.\n");
-   else if(heuristic_choice == 2) printf("out-degree distribution\n");
-   else printf("Nr. nodes and edges\n");
+   if(conf_choice == CONF_NAIVE) printf("Naive.\n");
+   else if(conf_choice == CONF_ITERATIVE) printf("Iterative.\n");
+   else if(conf_choice == CONF_EQ) printf("Iterative + equivalence distribution\n");
+   else if(conf_choice == CONF_DEGREE) printf("Iterative + out-degree distribution\n");
+   else{
+      conf_choice = CONF_COUNT; 
+      printf("Iterative + count nodes and edges\n");
+   }
+
    printf("- Twin node check : %d\n", do_twin_node_check);
-   printf("  max neighbours : %d\n", twin_nbs);
+   printf("  Max neighbours : %d\n", twin_nbs);
 
    printf("- Print statistics classes = %d: ", print_statistics);
    
-   if(heuristic_choice <= 0) printf("none.\n\n");
+   if(print_statistics <= 0) printf("none.\n\n");
    else if(print_statistics == 1) printf("Final statistics only\n");
    else if(print_statistics == 2) printf("Per iteration\n");
    else if(print_statistics == 3) printf("Per class split\n");
@@ -65,6 +72,15 @@ void print_info(sparsegraph sg1, const int directed, const int distance){
       
    printf("- Print equivalence classes = %d\n", print_eq_class);
    printf("- Print canonical labelling runtime = %d\n\n", print_time_can_labelling);
+
+   // Warning for directed:
+   if(directed == 1 && do_twin_node_check)
+      printf("WARNING: twin node check is not implemented for directed graphs. This step is skipped\n");
+   if(conf_choice == CONF_EQ){
+      printf("WARNING: CONF_EQ is not implemented for directed graphs. Changing to default: COUNT\n");
+      conf_choice = CONF_COUNT;
+   }
+   fflush(stdout);
 }
 
 // Parse command line arguments
@@ -79,7 +95,14 @@ void parse_input(int argc, char* argv[], int & directed, int &distance){
          i++;
       }
       else if(strcmp(argv[i], "-h") == 0){
-         heuristic_choice = (atoi(argv[i + 1]));
+         conf_choice = (atoi(argv[i + 1]));
+         i++;
+      }
+      else if(strcmp(argv[i], "-c") == 0){
+         do_twin_node_check = 0;
+      }
+      else if(strcmp(argv[i], "-cs") == 0){
+         twin_nbs = atoi(argv[i + 1]);
          i++;
       }
       else if(strcmp(argv[i], "-eq") == 0){
@@ -87,13 +110,6 @@ void parse_input(int argc, char* argv[], int & directed, int &distance){
       }
       else if(strcmp(argv[i], "-s") == 0){
          print_statistics = atoi(argv[i + 1]);
-         i++;
-      }
-      else if(strcmp(argv[i], "-c") == 0){
-         do_twin_node_check = 1;
-      }
-      else if(strcmp(argv[i], "-cs") == 0){
-         twin_nbs = atoi(argv[i + 1]);
          i++;
       }
       else if(strcasecmp(argv[i], "-t") == 0){
@@ -104,27 +120,33 @@ void parse_input(int argc, char* argv[], int & directed, int &distance){
 
 // Main
 int main(int argc, char *argv[]){
+   // Initialize variables
    SG_DECL(sg1); SG_DECL(sg2);
-   int directed = 0;
-   int distance = 5;
    int m, n = 0;
    char *input_file;
-   heuristic_choice = 3;
 
+   // Default values
+   int directed = 0;
+   int distance = 5;
+   conf_choice = 2;
+
+   // Check and parse input
    if(argc < 2){
       printf("Error not enough arguments: need input graph\n");
       exit(1);
    }
-   
    input_file = argv[1];
    parse_input(argc, argv, directed, distance);
 
+   // Read graph
    n = read_n(input_file);
    m = SETWORDSNEEDED(n);
    sg1 = read_graph_from_file(input_file, n);
 
+   // Print information
    print_info(sg1, directed, distance);
 
+   // Run algorithm
    if(directed == 1){
      sg2 = get_ingoing_graph(sg1);
      get_equivalence_classes_directed(sg1, sg2, distance);

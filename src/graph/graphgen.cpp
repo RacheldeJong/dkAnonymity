@@ -67,7 +67,6 @@ sparsegraph get_ingoing_graph(const sparsegraph sg1){
       sg2.v[i] = sg2.v[i-1] + sg2.d[i-1];
    }
 
-
    // Fill with edges
    for(i = 0; i < sg1.nv; i++){
       pos = sg1.v[i]; // List of nodes starts here

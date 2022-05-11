@@ -1,17 +1,18 @@
 # d-k-Anonymity
-This repository contains code used in [1] to measure anonymity in complex networks.
+This repository contains code used to measure anonymity in complex networks.
 Using this measure, vertices are partitioned into equivalence classes.
 Vertices are equivalent if they have the same structural position in their d-neighbourhood; parameter d can be used to set the strictness based on different levels of how much a possible attacker knows.
-This framework uses Nauty [2].
+This framework uses Nauty [1].
 
 # The framework
 * `src`: Directory containing source code
   * `anonymity.cpp`: Contains the main function and code
   * `util.h`: Includes the required libraries
-  * Directory `graph`: Contains files related to graphs
+  * `graph`: Contains files related to graphs
       * `graphgen.cpp`: Code to generate graphs and read graphs from input
       * `graphutil.cpp`: Functions useful for working with graphs such as get_neighbourhood or get_degree_distribution
-  * `Measure`: Contains files related to the graph measures
+      * `twinnode.cpp`: Functions to find twin nodes and add them correctly to equivalence classes
+  * `Measure`: Contains files related to the anonymity measures
       * `dk-anonymity.cpp`: Code to partition vertices of a (possibly directed) graph based on d-k-anonymity
 * `examples`: Directory containing example graphs
 
@@ -46,7 +47,7 @@ anonymity : ${ANON}/anonymity.cpp
 
 # Compilation
 ```
-make ./dkAnonymity/anonymity 
+make anonymity 
 ```
 
 # How to run
@@ -62,19 +63,19 @@ For example:
 
 ## Command line arguments
 Various command line arguments can be used to adjust the settings of the algorithm.
-* `-dir 0` : Set graph to directed or undirected
-    * `0` - Undirected graphs (default)
-    * `1` - Directed graphs
+
+* `-dir` : Set graph mode to directed
 * `-d 5` : Set the distance (default 5)
 * `-h 3` : Set the heuristic / algorithm choice
     * `0` - Naive (slowest)
     * `1` - Iterative
-    * `2` - Iterative + degree distribution heuristic (fastest)
-    * `3` - Iterative + number of vertices and edges as heuristic (fastest, default)
-* `-eq 1`: Choose to print equivalence classes per iteration 
-    * `1` - On (default)
-    * `0` - Off
-* `-s 1`: Set which statistics to print
+    * `2` - Iterative + number of vertices and edges as heuristic (fastest, default)
+    * `3` - Iterative + degree distribution heuristic (fastest)
+    * `4` - Iterative + equivalence class distribution (not implemented for directed) 
+* `-c` : Turn off twin node check (default on)
+* `-c 5` : Select maximum number of neighbour to check for twin nodes (default 5)
+* `-eq`: Choose to print equivalence classes per iteration (default: off)
+* `-s 1`: Choose which statistics to print
     * `0` - Print final statistics only
     * `2` - Print statistics per iteration (default)
     * `3` - Print per class split (Preceded by `/`, debug mode)
@@ -107,5 +108,3 @@ Examples can be generated with `visualize.py`, code to generate the examples are
 
 # References
 [1] B. D. McKay and A. Piperno, “Practical graph isomorphism”, Journal of Symbolic Computa-tion, vol. 60, no. 0, pp. 94–112, 2014. <br />
-[2] A. Hagberg, D. A. Schult, and P. J. Swart, “Exploring network structure, dynamics, and functionusing networkx,” inProceedings of the 7th Python in Science Conference(G. Varoquaux, T. Vaught,and J. Millman, eds.), (Pasadena, CA USA), pp. 11 – 15, 2008. <br />
-[3] G. Csardi and T. Nepusz, “The igraph software package for complex network research,”InterJournal,vol. Complex Systems, p. 1695, 2006. <br />

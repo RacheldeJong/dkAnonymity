@@ -218,28 +218,30 @@ void get_neighborhood_directed(const sparsegraph sgo, const sparsegraph sgi, spa
    v = map[v]; // Set v to corresponding node in new graph
 }
 
-void get_degree_distribution(const sparsegraph sg, std::map<int, size_t>& degrees){
+std::map<int, size_t> get_degree_distribution(const sparsegraph sg){
+   std::map<int, size_t> degrees;
    int degree;
-   degrees.clear();
 
    for(size_t i = 0; i < sg.nv; i++){
       degree = sg.d[i];
       
-      if(degrees.find(degree) == degrees.end()) degrees.insert({degree, 0});
+      if(degrees.find(degree) == degrees.end()) degrees.insert({degree, 1});
       else degrees[degree]++;
    }
+   return degrees;
 }
 
-void get_degree_distribution_directed(const sparsegraph sg, std::map<int, size_t>& outdegs){
+std::map<int, size_t> get_degree_distribution_directed(const sparsegraph sg){
+   std::map<int, size_t> outdegs;
    int outdeg;
-   outdegs.clear();
 
    for(size_t i = 0; i < sg.nv; i++){
       outdeg = sg.d[i];
       
-      if(outdegs.find(outdeg) == outdegs.end()) outdegs.insert({outdeg, 0});
+      if(outdegs.find(outdeg) == outdegs.end()) outdegs.insert({outdeg, 1});
       else outdegs[outdeg]++;
    }
+   return outdegs;
 }
 
 void print_graph(const sparsegraph sg){

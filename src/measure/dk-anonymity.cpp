@@ -2,12 +2,13 @@
 
 int print_eq_class = 0;
 int print_statistics = 1;
-int heuristic_choice = 0;
+int conf_choice = 2;
 int do_twin_node_check = 1;
-int twin_node_count = 0;
 int print_time_can_labelling = 0;
-int twin_nbs = 3;
+
 size_t iso_checks, nr_can1;
+
+std::vector<int> eq_map; // Map node_id -> equivalence_class_id
 
 bool are_same_sg_can(sparsegraph *cg1, sparsegraph *cg2, const int v1, const int v2, const int v1_pos, int *lab2, int *orbits){
    int i, n, m, target;
@@ -37,7 +38,31 @@ bool are_same_sg_can(sparsegraph *cg1, sparsegraph *cg2, const int v1, const int
    return false;
 }
 
-std::vector< std::vector< int > > split_equivalence_class(sparsegraph sg, std::vector <int> eclass, const int d){
+std::map<int, size_t> get_conf_distribution(const sparsegraph sg, const int v){
+   std::map<int, size_t>distribution;
+   int w;
+   int eq_id;
+   
+   // Iterate over direct neighbors v
+   for(int it = 0; it < sg.d[v]; ++it){
+      // Get neighbor
+      w = sg.e[sg.v[v] + it];
+
+      // Get their equivalence id
+      eq_id = eq_map[w];
+
+      // Store in distribution
+      if(distribution.find(eq_id) == distribution.end())
+         distribution.insert({eq_id, 1});
+      else 
+         distribution[eq_id]++;
+   }
+
+   // Return distribution
+   return distribution;
+}
+
+std::vector< std::vector< int > > split_equivalence_class(const sparsegraph sg, std::vector <int> eclass, const int d){
    std::vector< std::vector< int > >neweclass = {};
    std::vector< int > it_classes;
    std::vector<int> class_id(sg.nv, -1); // Maps node to class id
@@ -51,8 +76,8 @@ std::vector< std::vector< int > > split_equivalence_class(sparsegraph sg, std::v
 
    // Keys
    std::map< std::pair<int, int>, std::vector< int > > class_key; // Use nr. nodes + edges as map
-   std::map< std::map<int, size_t>, std::vector< int > > degree_keys; // Use outdegree distribution as map
-   std::map<int, size_t> degrees;
+   std::map< std::map<int, size_t>, std::vector< int > > distribution_keys; // Use outdegree distribution as map
+   std::map<int, size_t> distribution;
 
    // Declare required arrays
    DYNALLSTAT(int, lab, lab_sz);
@@ -88,7 +113,7 @@ std::vector< std::vector< int > > split_equivalence_class(sparsegraph sg, std::v
          printf("//iso checks %ld\n", iso_checks);
          printf("//new classes %ld\n", neweclass.size());
          printf("//heuristic classes ");
-         if(heuristic_choice == 2) printf("%ld\n", degree_keys.size());
+         if(conf_choice == 2) printf("%ld\n", distribution_keys.size());
          else printf("%ld\n", class_key.size());
          fflush(stdout);
       }
@@ -106,11 +131,20 @@ std::vector< std::vector< int > > split_equivalence_class(sparsegraph sg, std::v
       DYNALLOC1(int, map, map_sz, n, "malloc");
 
       // Get keys using selected heuristic
-      if(heuristic_choice == 1) // No heuristic
+      if(conf_choice == CONF_NAIVE || conf_choice == CONF_ITERATIVE) // No heuristic
          it_classes = class_key[std::make_pair(0, 0)];
-      else if(heuristic_choice == 2){ // Outdegree distribution
-         get_degree_distribution(sub1, degrees);
-         it_classes = degree_keys[degrees];
+      else if(conf_choice == CONF_DEGREE){ // Outdegree distribution
+         distribution = get_degree_distribution(sub1);
+         it_classes = distribution_keys[distribution];
+      }
+      else if(conf_choice == CONF_EQ){
+         if(d == 1){ // At distance 1: use degree distribution
+            distribution = get_degree_distribution(sub1);
+         }
+         else{
+            distribution = get_conf_distribution(sg, it);
+         }
+         it_classes = distribution_keys[distribution];
       }
       else // Use nr. nodes and edges of neighborhood (default)
          it_classes = class_key[std::make_pair(n, m)];
@@ -158,9 +192,12 @@ std::vector< std::vector< int > > split_equivalence_class(sparsegraph sg, std::v
          class_id[it] = neweclass.size();
          neweclass.push_back({it});
 
-         if(heuristic_choice == 1) class_key[std::make_pair(0, 0)].push_back(neweclass.size() - 1);
-         else if(heuristic_choice == 2) degree_keys[degrees].push_back(neweclass.size() - 1); 
-         else class_key[std::make_pair(n, m)].push_back(neweclass.size() - 1); // Default: n, m -> class nr
+         if(conf_choice == CONF_NAIVE || conf_choice == CONF_ITERATIVE) 
+            class_key[std::make_pair(0, 0)].push_back(neweclass.size() - 1); // Dummy key
+         else if(conf_choice == CONF_DEGREE || conf_choice == CONF_EQ) 
+            distribution_keys[distribution].push_back(neweclass.size() - 1); 
+         else 
+            class_key[std::make_pair(n, m)].push_back(neweclass.size() - 1); // Default: n, m -> class nr
       }
    }
 
@@ -172,72 +209,29 @@ std::vector< std::vector< int > > split_equivalence_class(sparsegraph sg, std::v
    
    if(print_statistics >= 3){
       printf("/final heuristic classes ");
-      if(heuristic_choice == 2) printf("%ld\n", degree_keys.size());
+      if(conf_choice == 2) printf("%ld\n", distribution_keys.size());
       else printf("%ld\n", class_key.size());
       fflush(stdout);
    }
    return neweclass;
 }
 
-std::vector<int> twin_node_check(sparsegraph sg, std::map<int, std::set<int>> &twin_node_map){
-   std::map<std::set<int>, int>targets; // Maps set of neighbours to a node
-   std::set<int> neighbour_set;
-   std::vector<int> node_set;
-
-   // For each node, check if it has a twin node / clone
-   for(size_t i = 0; i < sg.nv; i++){
-         
-      // Skip node if it has more than max_nbs neighbours
-      if(sg.d[i] > twin_nbs){
-         node_set.push_back(i);
-         continue;
-      }
-
-      // Get set of neighbours
-      for(size_t j = 0; j < sg.d[i]; j++)
-         neighbour_set.insert(sg.e[sg.v[i] +j]);
-
-      // Check if its neighbours are in targets list
-      auto it = targets.find(neighbour_set);
-      
-      // If yes, it has a twin node
-      if(it != targets.end()){
-         (twin_node_map[it->second]).insert(i);
-         twin_node_count++;
-      }
-      // Otherwise, not: update target list and insert into all set
-      else{
-         targets[neighbour_set] = i;
-         node_set.push_back(i);
-      }
-      neighbour_set.clear();
+void update_eq_map(std::vector< std::vector<int> >eq){
+   size_t counter = 0;
+   for(size_t i = 0; i < eq_map.size(); i++){
+      eq_map[i] = -1;
    }
-   return node_set;
-}
 
-std::vector< std::vector<int> >process_twin_nodes(std::vector< std::vector<int> >eq, std::map<int, std::set<int>>twin_node_map){
-   std::vector< std::vector<int> >eq_new;
-   std::vector<int> eq_class;
-   std::set<int> nodes;
-
+   // Iterate over equivalence classes
    for(auto it : eq){
-      for(auto it2 : it){
-         eq_class.push_back(it2);
-
-         // Check if node has a twin
-         auto it3 = twin_node_map.find(it2);
-         // Copy twins to new equivalence class
-         if(it3 != twin_node_map.end()){
-            std::copy(it3->second.begin(), it3->second.end(), std::back_inserter(eq_class));
-         }
+      for(int v : it){
+         eq_map[v] = counter;
       }
-      eq_new.push_back(eq_class);
-      eq_class.clear();
+      counter++;
    }
-   return eq_new;
 }
 
-std::vector< std::vector< int > > get_equivalence_classes(sparsegraph sg, const int d){
+std::vector< std::vector< int > > get_equivalence_classes(const sparsegraph sg, const int d){
    std::vector< std::vector<int> >eq, eq_stat, temp, neweq;
    std::map<int, std::set<int>> twin_node_map;
    std::vector<int> node_set;
@@ -247,20 +241,33 @@ std::vector< std::vector< int > > get_equivalence_classes(sparsegraph sg, const 
    size_t it_can1 = 0;
    size_t tot_can1 = 0;
    clock_t t2;
-   float t1;
+   float t1 = 0;
+   twinnode_count = 0;
    
+   t2 = clock();
    // Get set of all nodes: filter out twin nodes if any
-   if(do_twin_node_check) 
-      node_set = twin_node_check(sg, twin_node_map);
+   if(do_twin_node_check){
+      node_set = find_twin_nodes(sg, twin_node_map);
+      printf("skipped twin nodes: %d\n", twinnode_count);
+      fflush(stdout);
+   }
    else{
       for(i = 0; i < sg.nv; i++) 
          node_set.push_back(i);
    }
    eq.push_back(node_set);
 
+   if(conf_choice == CONF_EQ){
+      eq_map.clear();
+      for(size_t i = 0; i < sg.nv; i++)
+         eq_map.push_back(0);
+   }
+
+   t1 += ((double)(clock() - (double)t2))/CLOCKS_PER_SEC;
+
    // Iteratively expand neighbourhood radius
    for(int i = 1; i <= d; i++){
-      if(heuristic_choice == 0) i = d; // Naive computation -> start with i=d
+      if(conf_choice == 0) i = d; // Naive computation -> start with i=d
 
       t2 = clock();
       tel = 0;
@@ -296,16 +303,23 @@ std::vector< std::vector< int > > get_equivalence_classes(sparsegraph sg, const 
       // Update eq and clear neweq
       eq = neweq;
       neweq.clear();
+
       // Update statistics
       t1 += ((double)(clock() - (double)t2))/CLOCKS_PER_SEC;
       tot_iso_checks += it_iso_checks;
       tot_can1 += nr_can1;
 
       // Print statistics, get eqclass with twin nodes
-      if(do_twin_node_check && (print_eq_class || print_statistics >=2))
+      if(do_twin_node_check && ( print_eq_class || print_statistics >=2)){
          eq_stat = process_twin_nodes(eq, twin_node_map);
+      }
       else 
          eq_stat = eq;
+
+      // Update eq_map, include twin nodes
+      if(conf_choice == CONF_EQ){
+         update_eq_map(eq_stat);
+      }
 
       if(print_statistics >= 2){
          printf("N%d of %d:\n", i, d);
@@ -323,22 +337,24 @@ std::vector< std::vector< int > > get_equivalence_classes(sparsegraph sg, const 
    }
 
    // Print statistics
-   if(do_twin_node_check)
+   if(do_twin_node_check){
       eq = process_twin_nodes(eq, twin_node_map);
+   }
    if(print_statistics >= 1){
+      printf("\nFinal results.\n");
       printf("tot time: %f\n", t1);
       printf("final k: %d\n", get_k(eq));
       printf("tot can nbh1: %ld\n", tot_can1);
       printf("tot iso checks: %ld\n", tot_iso_checks);
       if(do_twin_node_check)
-         printf("skipped twin nodes: %d\n", twin_node_count);      
+         printf("skipped twin nodes: %d\n", twinnode_count);      
       print_statistics_eq(eq, d);
    }
    fflush(stdout);
    return eq;
 }
 
-std::vector< std::vector< int > > split_equivalence_class_directed(sparsegraph sgo, sparsegraph sgi, std::vector <int> eclass, const int d){
+std::vector< std::vector< int > > split_equivalence_class_directed(const sparsegraph sgo, const sparsegraph sgi, std::vector <int> eclass, const int d){
    std::vector< std::vector< int > >neweclass = {};
    std::vector< int > it_classes;
    SG_DECL(sub1); SG_DECL(sub2);
@@ -387,7 +403,7 @@ std::vector< std::vector< int > > split_equivalence_class_directed(sparsegraph s
          printf("//iso checks %ld\n", iso_checks);
          printf("//new classes %ld\n", neweclass.size());
          printf("//heuristic classes ");
-         if(heuristic_choice == 2) printf("%ld\n", outdeg_keys.size());
+         if(conf_choice == 2) printf("%ld\n", outdeg_keys.size());
          else printf("%ld\n", class_key.size());
          fflush(stdout);
       }
@@ -405,10 +421,10 @@ std::vector< std::vector< int > > split_equivalence_class_directed(sparsegraph s
       DYNALLOC1(int, map, map_sz, n, "malloc");
 
       // Get keys using selected heuristic
-      if(heuristic_choice == 0 || heuristic_choice == 1) // No heuristic
+      if(conf_choice == CONF_NAIVE || conf_choice == CONF_ITERATIVE) // No heuristic
          it_classes = class_key[std::make_pair(0, 0)];
-      else if(heuristic_choice == 2){ // Outdegree distribution
-         get_degree_distribution_directed(sub1, outdegs);
+      else if(conf_choice == CONF_DEGREE){ // Outdegree distribution
+         outdegs = get_degree_distribution_directed(sub1);
          it_classes = outdeg_keys[outdegs];
       }
       else // Use nr. nodes and edges of neighborhood (default)
@@ -445,15 +461,15 @@ std::vector< std::vector< int > > split_equivalence_class_directed(sparsegraph s
       // No class where it fits in, create a new class
       if(!added){
          neweclass.push_back({it});
-         if(heuristic_choice == 0 || heuristic_choice == 1) class_key[std::make_pair(0, 0)].push_back(neweclass.size() - 1);
-         else if(heuristic_choice == 2) outdeg_keys[outdegs].push_back(neweclass.size() - 1); 
+         if(conf_choice == CONF_NAIVE || conf_choice == CONF_ITERATIVE) class_key[std::make_pair(0, 0)].push_back(neweclass.size() - 1);
+         else if(conf_choice == CONF_DEGREE) outdeg_keys[outdegs].push_back(neweclass.size() - 1); 
          else class_key[std::make_pair(n, m)].push_back(neweclass.size() - 1); // Default: n, m -> class nr
       }
    }
 
    if(print_statistics >= 3){
       printf("/final heuristic classes ");
-      if(heuristic_choice == 2) printf("%ld\n", outdeg_keys.size());
+      if(conf_choice == 2) printf("%ld\n", outdeg_keys.size());
       else printf("%ld\n", class_key.size());
       fflush(stdout);
    }
@@ -467,7 +483,7 @@ std::vector< std::vector< int > > split_equivalence_class_directed(sparsegraph s
    return neweclass;
 }
 
-std::vector< std::vector< int > > get_equivalence_classes_directed(sparsegraph sgo, sparsegraph sgi, const int d){
+std::vector< std::vector< int > > get_equivalence_classes_directed(const sparsegraph sgo, const sparsegraph sgi, const int d){
    std::vector<int> all;
    std::vector< std::vector<int> >eq, temp, neweq;
    clock_t t2; 
@@ -534,6 +550,7 @@ std::vector< std::vector< int > > get_equivalence_classes_directed(sparsegraph s
       fflush(stdout);
    }
    if(print_statistics >= 1){
+      printf("\nFinal results.\n");
       printf("tot time %f\n", t1);
       printf("tot can nbh1 %ld\n", tot_can1);
       printf("tot iso checks %ld\n", tot_iso_checks);
@@ -598,10 +615,7 @@ void print_statistics_eq(const std::vector <std::vector <int > > eclasses, const
       if(cur < min) min = cur;
       if(cur > max) max = cur;
    }
-   //printf("Equivalence partition statistics\n");
-   //printf("It %d Min size: %d\n", it, min);
-   //printf("It %d Max size: %d\n", it, max);
-   //printf("All sizes (size, occurences):\n  ");
+
    printf("eq %d: ", it);
    for(auto it : sizes){
       printf("[%d, %d], ", it.first, it.second);

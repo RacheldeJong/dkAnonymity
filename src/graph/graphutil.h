@@ -2,9 +2,8 @@
 // 
 // Contains utility functions required for computing the d-k-anonymity distribution
 // of a graph
-//
-// Author: Rachel de Jong
-// Date: 25-8-2020
+// 
+// Last edited: 11-5-2021
 //
 
 #include "../util.h"
@@ -35,16 +34,19 @@ void get_neighborhood_directed(const sparsegraph sgo, const sparsegraph sgi, spa
 //         NOTE: This value is not used, but only changed during execution so the 
 //         number of edges is known afterwards (Useful for allocating space for subgraph)
 //
+// @Returns: set containing all nodes in d-neighborhood of v
+//
 std::unordered_set<int> get_neighborhood_nodes(const sparsegraph sg, const int v, const int d, int &edges);
 
 // Get the degree distribution (out-degree distribution for directed graphs)
 // and store it in degrees (outdegs)
 //
 // @sg: sparse graph for which the degree distribution is computed
-// @degrees / outdegs: data structure in which the degree distribution is stored
+// 
+// @Returns: degrees / outdegs: data structure in which the degree distribution is stored
 //
-void get_degree_distribution(const sparsegraph sg, std::map<int, size_t>& degrees);
-void get_degree_distribution_directed(const sparsegraph sg, std::map<int, size_t>& outdegs);
+std::map<int, size_t>  get_degree_distribution(const sparsegraph sg);
+std::map<int, size_t>  get_degree_distribution_directed(const sparsegraph sg);
 
 // Simple function to print sparse graph. Format:
 // from: to, to,
