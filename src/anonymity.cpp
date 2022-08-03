@@ -4,7 +4,7 @@
 // Command line input: ./path-to/graph [optional arguments]
 // Author: Rachel de Jong
 // 
-// Last edited: 11-5-2022
+// Last edited: 3-8-2022
 //
 
 #include "util.h"
@@ -63,7 +63,6 @@ void print_info(const sparsegraph sg1, const int directed, const int distance){
    printf("  Max neighbours : %d\n", twin_nbs);
 
    printf("- Print statistics classes = %d: ", print_statistics);
-   
    if(print_statistics <= 0) printf("none.\n\n");
    else if(print_statistics == 1) printf("Final statistics only\n");
    else if(print_statistics == 2) printf("Per iteration\n");
@@ -74,9 +73,11 @@ void print_info(const sparsegraph sg1, const int directed, const int distance){
    printf("- Print canonical labelling runtime = %d\n\n", print_time_can_labelling);
 
    // Warning for directed:
+   if(directed == 1)
+      printf("WARNING: cache is not implemented for directed graphs.\n");
    if(directed == 1 && do_twin_node_check)
       printf("WARNING: twin node check is not implemented for directed graphs. This step is skipped\n");
-   if(conf_choice == CONF_EQ){
+   if(directed == 1 && conf_choice == CONF_EQ){
       printf("WARNING: CONF_EQ is not implemented for directed graphs. Changing to default: COUNT\n");
       conf_choice = CONF_COUNT;
    }
@@ -85,10 +86,9 @@ void print_info(const sparsegraph sg1, const int directed, const int distance){
 
 // Parse command line arguments
 void parse_input(int argc, char* argv[], int & directed, int &distance){
-
    for(int i =1; i < argc; i++){
       if(strcmp(argv[i], "-dir") == 0){
-         directed = 1;
+         directed = 0;
       }
       else if(strcmp(argv[i], "-d") == 0){
          distance = (atoi(argv[i + 1]));

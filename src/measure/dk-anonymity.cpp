@@ -1,16 +1,17 @@
 #include "dk-anonymity.h"
 
+// Default settings
 int print_eq_class = 0;
 int print_statistics = 1;
 int conf_choice = 2;
 int do_twin_node_check = 1;
 int print_time_can_labelling = 0;
 
-size_t iso_checks, nr_can1;
+size_t iso_checks, nr_can;
 
 std::vector<int> eq_map; // Map node_id -> equivalence_class_id
 
-bool are_same_sg_can(sparsegraph *cg1, sparsegraph *cg2, const int v1, const int v2, const int v1_pos, int *lab2, int *orbits){
+bool are_same_sg_can(sparsegraph *cg1, sparsegraph *cg2, const int v1, const int v2, const int v1_pos, int *lab, int *orbits){
    int i, n, m, target;
    n = cg1->nv;
    m = SETWORDSNEEDED(n);
@@ -24,7 +25,7 @@ bool are_same_sg_can(sparsegraph *cg1, sparsegraph *cg2, const int v1, const int
       // Find node in sg2 isomorph with v1:
       // Each node i in the graph is mapped to a new label: lab1[i](G1) -> i (G'1)
       // lab1[i] =iso lab2[i] -> if v1 = lab1[i] then lab2[i] is a node in G2 isomorphic to v1 in G1
-      target = lab2[v1_pos];
+      target = lab[v1_pos];
 
       // Check if nodes are in the same orbit 
       // v1 =iso lab1[i] =iso lab2[i] and lab2[i] == target
@@ -62,27 +63,49 @@ std::map<int, size_t> get_conf_distribution(const sparsegraph sg, const int v){
    return distribution;
 }
 
+void update_eq_map(std::vector< std::vector<int> >eq){
+   size_t counter = 0;
+   for(size_t i = 0; i < eq_map.size(); i++){
+      eq_map[i] = -1;
+   }
+
+   // Iterate over equivalence classes
+   for(auto it : eq){
+      for(int v : it){
+         eq_map[v] = counter;
+      }
+      counter++;
+   }
+}
+
 std::vector< std::vector< int > > split_equivalence_class(const sparsegraph sg, std::vector <int> eclass, const int d){
-   std::vector< std::vector< int > >neweclass = {};
+   std::vector< std::vector< int > >neweclass = {}; // Store equivalence classes
+   std::vector< long > can_hash = {}; // For each eq. class, store hashes of generated canonical labelling
+   std::vector< long > can_pos = {}; // And position in canonical labelling
    std::vector< int > it_classes;
    std::vector<int> class_id(sg.nv, -1); // Maps node to class id
    SG_DECL(sub1); SG_DECL(sub2);
    SG_DECL(cansub1); SG_DECL(cansub2);
-   int cur1, cur2, n, m, nodes, edges, i, v1_pos;
-   int temp_val;
-   size_t tel;
+   int n, m, nodes, edges, i;
+   int cur1, cur2;
+   int v1_pos, v2_pos;
+   int orbit1, orbit2;
+   long hashc1, hashc2; // Store hashed canonical labellings
+   size_t tel, conf_id;
    bool added;
    clock_t t1;
 
-   // Keys
-   std::map< std::pair<int, int>, std::vector< int > > class_key; // Use nr. nodes + edges as map
-   std::map< std::map<int, size_t>, std::vector< int > > distribution_keys; // Use outdegree distribution as map
-   std::map<int, size_t> distribution;
+   // Key -> equivalence class candidates
+   std::map< std::pair<int, int>, std::vector< int > > class_key = {}; // Use nr. nodes + edges as map
+   std::map< std::map<int, size_t>, std::vector< int > > distribution_keys = {}; // Use outdegree distribution as map
+   std::map<int, size_t> distribution = {};
 
    // Declare required arrays
    DYNALLSTAT(int, lab, lab_sz);
+   DYNALLSTAT(int, lab2, lab2_sz); // TMP
    DYNALLSTAT(int, ptn, ptn_sz);
    DYNALLSTAT(int, orbits, orbits_sz);
+   DYNALLSTAT(int, orbits2, orbits2_sz); // TMP
    DYNALLSTAT(int, map, map_sz);
    static DEFAULTOPTIONS_SPARSEGRAPH(options);
    options.getcanon = TRUE;
@@ -105,11 +128,13 @@ std::vector< std::vector< int > > split_equivalence_class(const sparsegraph sg, 
    for(auto it : eclass){
       added = false;
       cur1 = it;
+      hashc1 = -1; // Default: not initialized
+      v1_pos = -1;
 
       //Update statistics:
       if(print_statistics >= 4 && (tel == 0 || tel % int((eclass.size() / 100) + 1) == 0)){
          printf("//node %ld / %ld\n", tel + 1, eclass.size());
-         printf("//can nbh1 %ld\n", nr_can1);
+         printf("//can nbh1 %ld\n", nr_can);
          printf("//iso checks %ld\n", iso_checks);
          printf("//new classes %ld\n", neweclass.size());
          printf("//heuristic classes ");
@@ -126,8 +151,10 @@ std::vector< std::vector< int > > split_equivalence_class(const sparsegraph sg, 
 
       // Dynamic allocation for Traces
       DYNALLOC1(int, lab, lab_sz, n, "malloc");
+      DYNALLOC1(int, lab2, lab2_sz, n, "malloc");
       DYNALLOC1(int, ptn, ptn_sz, n, "malloc");
       DYNALLOC1(int, orbits, orbits_sz,n, "malloc");
+      DYNALLOC1(int, orbits2, orbits2_sz,n, "malloc");
       DYNALLOC1(int, map, map_sz, n, "malloc");
 
       // Get keys using selected heuristic
@@ -138,12 +165,10 @@ std::vector< std::vector< int > > split_equivalence_class(const sparsegraph sg, 
          it_classes = distribution_keys[distribution];
       }
       else if(conf_choice == CONF_EQ){
-         if(d == 1){ // At distance 1: use degree distribution
+         if(d == 1) // At distance 1: use degree distribution
             distribution = get_degree_distribution(sub1);
-         }
-         else{
+         else
             distribution = get_conf_distribution(sg, it);
-         }
          it_classes = distribution_keys[distribution];
       }
       else // Use nr. nodes and edges of neighborhood (default)
@@ -155,49 +180,88 @@ std::vector< std::vector< int > > split_equivalence_class(const sparsegraph sg, 
          // Get canonically labeled graph and position of it in lab1 array
          t1 = clock();
          sparsenauty(&sub1, lab, ptn, orbits, &options, &stats, &cansub1);
-         if(print_time_can_labelling)
-            printf("Can time first: %d, %f\n", sub1.nv, ((double)(clock() - (double)t1))/CLOCKS_PER_SEC);
 
-         for (i = 0; i < n; i++){
+         if(print_time_can_labelling){
+            printf("Can time first: %d, %f\n", sub1.nv, ((double)(clock() - (double)t1))/CLOCKS_PER_SEC);
+            fflush(stdout);
+         }
+
+         // Find position
+         for (i = 0; i < sub1.nv; i++){
             if(lab[i] == cur1) {
-               v1_pos = i; 
+               v1_pos = i;
                break;
             }
          }
-         nr_can1++;
 
+         hashc1 = get_hash(cansub1);
+         orbit1 = orbits[cur1];
+         nr_can++;
          for(int it2 = 0; it2 < it_classes.size(); it2++){
+            conf_id = it_classes[it2]; // conf id
+            cur2 = neweclass[conf_id][0]; // Get node from equivalence class
             
-            // Get d-neighborhood of second node + canonically labeled graph
-            cur2 = neweclass[it_classes[it2]][0]; // First element of neweclass
-            get_neighborhood(sg, sub2, cur2, d);
+            // Get from cache
+            if(can_hash[conf_id] != -1 && can_pos[conf_id] != -1){
+               hashc2 = can_hash[conf_id];
+               v2_pos = can_pos[conf_id];
+               if(v2_pos >= cansub1.nv) continue; 
+               orbit2 = orbits[lab[v2_pos]];
+            }
+            // Compute canonical labelling of d-neighborhood
+            else{
+               get_neighborhood(sg, sub2, cur2, d);
+               t1 = clock();
+               sparsenauty(&sub2, lab2, ptn, orbits2, &options, &stats, &cansub2);
+               if(print_time_can_labelling){
+                  printf("Can time second: %d, %f\n", sub2.nv, ((double)(clock() - (double)t1))/CLOCKS_PER_SEC);
+                  fflush(stdout);
+               }
+               //v2_pos is value of cur2 in canonical labelling (lab[i] s.t. i == cur2)
+               for (i = 0; i < sub2.nv; i++){
+                  if(lab2[i] == cur2) {
+                     v2_pos = i;
+                     break;
+                  }
+               }
+               // Get values to use
+               hashc2 = get_hash(cansub2);
+               orbit2 = orbits[lab[v2_pos]];
+               // Store values
+               can_hash[conf_id] = hashc2;
+               can_pos[conf_id] = v2_pos;
+               nr_can++;
+               // Check if i is in range. Otherwise continue
+               if(i > cansub1.nv) continue;
+            }
 
-            // Get canonical labelling
-            t1 = clock();
-            sparsenauty(&sub2, lab, ptn, orbits, &options, &stats, &cansub2);
-            if(print_time_can_labelling)
-               printf("Can time second: %d, %f\n", sub2.nv, ((double)(clock() - (double)t1))/CLOCKS_PER_SEC);
-            
             // Compare on isomorphism and automorphism
-            if(are_same_sg_can(&cansub1, &cansub2, cur1, cur2, v1_pos, lab, orbits)){
-               neweclass[it_classes[it2]].push_back(it);
-               class_id[it] = it_classes[it2]; // update class id of node it
+            if(hashc1 == hashc2 && orbit1 == orbit2){
+               iso_checks++;
+               neweclass[conf_id].push_back(it);
+               class_id[it] = conf_id; // Update class id of node it
                added = true;
                break;
             }
          }
       }
-      // No class where node fits in, create a new class
+      // No equivalence class where node fits, create a new class
       if(!added){
+         // Create new equivalence class
          class_id[it] = neweclass.size();
          neweclass.push_back({it});
 
+         // Update keys
          if(conf_choice == CONF_NAIVE || conf_choice == CONF_ITERATIVE) 
             class_key[std::make_pair(0, 0)].push_back(neweclass.size() - 1); // Dummy key
          else if(conf_choice == CONF_DEGREE || conf_choice == CONF_EQ) 
             distribution_keys[distribution].push_back(neweclass.size() - 1); 
-         else 
+         else
             class_key[std::make_pair(n, m)].push_back(neweclass.size() - 1); // Default: n, m -> class nr
+         
+         // Update hash and position vector
+         can_hash.push_back(hashc1);
+         can_pos.push_back(v1_pos);
       }
    }
 
@@ -216,21 +280,6 @@ std::vector< std::vector< int > > split_equivalence_class(const sparsegraph sg, 
    return neweclass;
 }
 
-void update_eq_map(std::vector< std::vector<int> >eq){
-   size_t counter = 0;
-   for(size_t i = 0; i < eq_map.size(); i++){
-      eq_map[i] = -1;
-   }
-
-   // Iterate over equivalence classes
-   for(auto it : eq){
-      for(int v : it){
-         eq_map[v] = counter;
-      }
-      counter++;
-   }
-}
-
 std::vector< std::vector< int > > get_equivalence_classes(const sparsegraph sg, const int d){
    std::vector< std::vector<int> >eq, eq_stat, temp, neweq;
    std::map<int, std::set<int>> twin_node_map;
@@ -238,8 +287,8 @@ std::vector< std::vector< int > > get_equivalence_classes(const sparsegraph sg, 
    size_t i, tel;
    size_t it_iso_checks = 0;
    size_t tot_iso_checks = 0;
-   size_t it_can1 = 0;
-   size_t tot_can1 = 0;
+   size_t it_can = 0;
+   size_t tot_can = 0;
    clock_t t2;
    float t1 = 0;
    twinnode_count = 0;
@@ -272,13 +321,13 @@ std::vector< std::vector< int > > get_equivalence_classes(const sparsegraph sg, 
       t2 = clock();
       tel = 0;
       it_iso_checks = 0;
-      it_can1 = 0;
+      it_can = 0;
 
       // Iterate over equivalence classes and try to split them further
       for(auto it : eq){
          // Statistics
          iso_checks = 0;
-         nr_can1 = 0;
+         nr_can = 0;
 
          // Split current eq class
          temp = split_equivalence_class(sg, it, i);
@@ -292,13 +341,13 @@ std::vector< std::vector< int > > get_equivalence_classes(const sparsegraph sg, 
             printf("/Finished class %ld / %ld\n", tel, eq.size()); 
             printf("/size %ld\n", it.size());
             printf("/time %f\n", ((double)(clock() - (double)t2))/CLOCKS_PER_SEC);
-            printf("/can nbh1 %ld\n", nr_can1);
+            printf("/can nbh1 %ld\n", nr_can);
             printf("/iso checks %ld\n", iso_checks);
             printf("/new classes %ld\n", temp.size());
             fflush(stdout);
          }
          it_iso_checks += iso_checks;
-         it_can1 += nr_can1;
+         it_can += nr_can;
       }
       // Update eq and clear neweq
       eq = neweq;
@@ -307,7 +356,7 @@ std::vector< std::vector< int > > get_equivalence_classes(const sparsegraph sg, 
       // Update statistics
       t1 += ((double)(clock() - (double)t2))/CLOCKS_PER_SEC;
       tot_iso_checks += it_iso_checks;
-      tot_can1 += nr_can1;
+      tot_can += nr_can;
 
       // Print statistics, get eqclass with twin nodes
       if(do_twin_node_check && ( print_eq_class || print_statistics >=2)){
@@ -325,7 +374,7 @@ std::vector< std::vector< int > > get_equivalence_classes(const sparsegraph sg, 
          printf("N%d of %d:\n", i, d);
          printf("time it %d: %f\n", i, ((double)(clock() - (double)t2))/CLOCKS_PER_SEC);
          printf("k it %d: %d\n", i, get_k(eq_stat));
-         printf("can nbh1 it %d: %ld\n", i, it_can1);
+         printf("can nbh it %d: %ld\n", i, it_can);
          printf("iso checks it %d: %ld\n", i, it_iso_checks);
          print_statistics_eq(eq_stat, i);
       }
@@ -344,7 +393,7 @@ std::vector< std::vector< int > > get_equivalence_classes(const sparsegraph sg, 
       printf("\nFinal results.\n");
       printf("tot time: %f\n", t1);
       printf("final k: %d\n", get_k(eq));
-      printf("tot can nbh1: %ld\n", tot_can1);
+      printf("tot can nbh: %ld\n", tot_can);
       printf("tot iso checks: %ld\n", tot_iso_checks);
       if(do_twin_node_check)
          printf("skipped twin nodes: %d\n", twinnode_count);      
@@ -399,7 +448,7 @@ std::vector< std::vector< int > > split_equivalence_class_directed(const sparseg
       //Update:
       if(print_statistics >= 4 && (tel == 0 || tel % int((eclass.size() / 100) + 1) == 0)){
          printf("//node %ld / %ld\n", tel + 1, eclass.size());
-         printf("//can nbh1 %ld\n", nr_can1);
+         printf("//can nbh1 %ld\n", nr_can);
          printf("//iso checks %ld\n", iso_checks);
          printf("//new classes %ld\n", neweclass.size());
          printf("//heuristic classes ");
@@ -441,7 +490,7 @@ std::vector< std::vector< int > > split_equivalence_class_directed(const sparseg
                break;
             }
          }
-         nr_can1++;
+         nr_can++;
          
          for(int it2 = 0; it2 < it_classes.size(); it2++){
 
@@ -491,8 +540,8 @@ std::vector< std::vector< int > > get_equivalence_classes_directed(const sparseg
    size_t i, n, tel;
    size_t it_iso_checks = 0;
    size_t tot_iso_checks = 0;
-   size_t it_can1 = 0;
-   size_t tot_can1 = 0;
+   size_t it_can = 0;
+   size_t tot_can = 0;
    n = sgo.nv;
 
    // Start with class of all nodes (no information, all equivalent)
@@ -506,12 +555,12 @@ std::vector< std::vector< int > > get_equivalence_classes_directed(const sparseg
       t2 = clock();
       tel = 0;
       it_iso_checks = 0;
-      it_can1 = 0;
+      it_can = 0;
 
       // Iterate over equivalence classes and try to split them further
       for(auto it : eq){
          iso_checks = 0;
-         nr_can1 = 0;
+         nr_can = 0;
          temp = split_equivalence_class_directed(sgo, sgi, it, i);
          for(auto it2 : temp){
             neweq.push_back(it2);
@@ -521,26 +570,26 @@ std::vector< std::vector< int > > get_equivalence_classes_directed(const sparseg
             printf("/Finished class %ld / %ld\n", tel, eq.size()); 
             printf("/size %ld\n", it.size());
             printf("/time %f\n", ((double)(clock() - (double)t2))/CLOCKS_PER_SEC);
-            printf("/can nbh1 %ld\n", nr_can1);
+            printf("/can nbh1 %ld\n", nr_can);
             printf("/iso checks %ld\n", iso_checks);
             printf("/new classes %ld\n", temp.size());
             fflush(stdout);
          }
          it_iso_checks += iso_checks;
-         it_can1 += nr_can1;
+         it_can += nr_can;
       }
       eq = neweq;
       neweq.clear();
       t1 += ((double)(clock() - (double)t2))/CLOCKS_PER_SEC;
       tot_iso_checks += it_iso_checks;
-      tot_can1 += nr_can1;
+      tot_can += nr_can;
 
       // Print statistics
       if(print_statistics >= 2){
          printf("N%d of %d:\n", i, d);
          printf("time it %d: %f\n", i, ((double)(clock() - (double)t2))/CLOCKS_PER_SEC);
          printf("k it %d: %d\n", i, get_k(eq));
-         printf("can nbh1 it %d: %ld\n", i, it_can1);
+         printf("can nbh1 it %d: %ld\n", i, it_can);
          printf("iso checks it %d: %ld\n", i, it_iso_checks);
          print_statistics_eq(eq, i);
       }
@@ -552,7 +601,7 @@ std::vector< std::vector< int > > get_equivalence_classes_directed(const sparseg
    if(print_statistics >= 1){
       printf("\nFinal results.\n");
       printf("tot time %f\n", t1);
-      printf("tot can nbh1 %ld\n", tot_can1);
+      printf("tot can nbh1 %ld\n", tot_can);
       printf("tot iso checks %ld\n", tot_iso_checks);
       if(print_statistics == 1){
          print_statistics_eq(eq, d);

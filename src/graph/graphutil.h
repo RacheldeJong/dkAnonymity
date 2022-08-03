@@ -3,10 +3,12 @@
 // Contains utility functions required for computing the d-k-anonymity distribution
 // of a graph
 // 
-// Last edited: 11-5-2021
+// Last edited: 25-5-2021
 //
 
 #include "../util.h"
+
+#define HASHKEY 42
 
 // Given a graph sg1 (sgo and sgi for directed), vertex v and distance d, 
 // this function generates and returns the d-neighbourhood of v
@@ -47,6 +49,14 @@ std::unordered_set<int> get_neighborhood_nodes(const sparsegraph sg, const int v
 //
 std::map<int, size_t>  get_degree_distribution(const sparsegraph sg);
 std::map<int, size_t>  get_degree_distribution_directed(const sparsegraph sg);
+
+// Generate a hash representing sparsegrpaph sg
+//
+// @sg: the sparse grpah to be hashed
+//
+// @Returns: hash with data type long
+//
+long get_hash(sparsegraph sg);
 
 // Simple function to print sparse graph. Format:
 // from: to, to,

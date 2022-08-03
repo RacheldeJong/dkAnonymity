@@ -244,6 +244,10 @@ std::map<int, size_t> get_degree_distribution_directed(const sparsegraph sg){
    return outdegs;
 }
 
+long get_hash(sparsegraph sg){
+   return hashgraph_sg(&sg, HASHKEY);
+}
+
 void print_graph(const sparsegraph sg){
    int n = sg.nv;
    int pos;

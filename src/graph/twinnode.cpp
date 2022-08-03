@@ -7,6 +7,7 @@ std::vector<int> find_twin_nodes(const sparsegraph sg, std::map<int, std::set<in
    std::map<std::set<int>, int>targets; // Maps set of neighbours to a node
    std::set<int> neighbour_set;
    std::vector<int> node_set;
+   twinnode_count = 0;
 
    // For each node, check if it has a twin node / clone
    for(size_t i = 0; i < sg.nv; i++){
@@ -29,6 +30,7 @@ std::vector<int> find_twin_nodes(const sparsegraph sg, std::map<int, std::set<in
       if(it != targets.end()){
 
          (twin_node_map[it->second]).insert(i);
+
          twinnode_count++;
          continue;
       }

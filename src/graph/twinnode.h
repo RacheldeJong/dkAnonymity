@@ -2,7 +2,7 @@
 //
 // Contains code to find twin nodes and update equivalence classes
 //
-// Last edited: 11-5-2021
+// Last edited: 3-8-2021
 //
 
 #ifndef TWINNODE
@@ -18,7 +18,7 @@ extern int twinnode_count;
 // e.g. if 1, 2, 3 are twins: (1, [2, 3]) is stored in twin_node_map
 //  1 is the node that represents the twin nodes
 //
-// @sg1: Sparsegraphs
+// @sg1: Sparsegraph
 // @twin_node_map: after execution, will contain the twin nodes of sg
 //
 std::vector<int> find_twin_nodes(const sparsegraph sg, std::map<int, std::set<int>> &twin_node_map);

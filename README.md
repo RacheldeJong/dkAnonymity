@@ -1,8 +1,7 @@
 # d-k-Anonymity
 This repository contains code used to measure anonymity in complex networks.
 Using this measure, vertices are partitioned into equivalence classes.
-Vertices are equivalent if they have the same structural position in their d-neighbourhood; parameter d can be used to set the strictness based on different levels of how much a possible attacker knows.
-This framework uses Nauty [1].
+Vertices are equivalent if they have the same structural position in their d-neighbourhood; parameter d can be used to set the radius of the neighbourhood. This framework uses Nauty [1].
 
 # The framework
 * `src`: Directory containing source code
@@ -64,7 +63,7 @@ For example:
 ## Command line arguments
 Various command line arguments can be used to adjust the settings of the algorithm.
 
-* `-dir` : Set graph mode to directed
+* `-dir` : Set graph mode to directed (note: cache is not implemented for directed)
 * `-d 5` : Set the distance (default 5)
 * `-h 3` : Set the heuristic / algorithm choice
     * `0` - Naive (slowest)
@@ -73,13 +72,14 @@ Various command line arguments can be used to adjust the settings of the algorit
     * `3` - Iterative + degree distribution heuristic (fastest)
     * `4` - Iterative + equivalence class distribution (not implemented for directed) 
 * `-c` : Turn off twin node check (default on)
-* `-c 5` : Select maximum number of neighbour to check for twin nodes (default 5)
+* `-cs 5` : Select maximum number of neighbour to check for twin nodes (default 5)
 * `-eq`: Choose to print equivalence classes per iteration (default: off)
 * `-s 1`: Choose which statistics to print
     * `0` - Print final statistics only
     * `2` - Print statistics per iteration (default)
     * `3` - Print per class split (Preceded by `/`, debug mode)
     * `4` - Print all statistics, including progress updates (Preceded by `//`, debug mode)
+* `-t`: Print runtime for each canonical labeling computation (default: off)
 
 # Input graphs
 
