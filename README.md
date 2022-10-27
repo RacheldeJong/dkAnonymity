@@ -39,7 +39,7 @@ GRAPH = ${ANON}/graph
 MEAS = ${ANON}/measure
 
 anonymity : ${ANON}/anonymity.cpp
-	        g++ -o ${ANON}/anonymity ${CFLAGS} ${ANON}/anonymity.cpp ${GRAPH}/graphutil.cpp ${GRAPH}/graphgen.cpp ${MEAS}/dk-anonymity.cpp traces.o nauty.a ${LDFLAGS}
+	        g++ -o ${ANON}/anonymity ${CFLAGS} ${ANON}/anonymity.cpp ${GRAPH}/graphutil.cpp ${GRAPH}/graphgen.cpp ${GRAPH}/twinnode.cpp ${MEAS}/dk-anonymity.cpp traces.o nauty.a ${LDFLAGS}
 
 ```
 `WARNING`: when cleaning the nauty directory, the makefile is regenerated and these lines are deleted.
