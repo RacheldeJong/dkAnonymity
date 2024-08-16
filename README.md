@@ -1,7 +1,7 @@
-# d-k-Anonymity
+# $d$-$k$-Anonymity
 This repository contains code to measure anonymity in complex networks as proposed in [1] and used in [2].
 Using this measure, vertices are partitioned into equivalence classes.
-Vertices are equivalent if they have the same structural position in their d-neighbourhood; parameter d can be used to set the radius of the neighbourhood. This framework uses Nauty [3].
+Vertices are equivalent if they have the same structural position in their $d$-neighbourhood; parameter d can be used to set the radius of the neighbourhood. This framework uses Nauty [3].
 
 # The framework
 * `src`: Directory containing source code
@@ -16,29 +16,16 @@ Vertices are equivalent if they have the same structural position in their d-nei
 * `examples`: Directory containing example graphs
 
 # Installation
-Before using this code, the Nauty framework should be downloaded from: https://pallini.di.uniroma1.it/
+Before using this code, the Nauty framework should be downloaded from: https://users.cecs.anu.edu.au/~bdm/nauty/
 * Move this git-directory (dkAnonymity) in the downloaded nauty directory (nauty27r3)
 * Run the following commands:
 ```
 ./configure
 make
 ```
-* In the makefile in nauty27r3 add the following lines after line #500:
-
-
-```
-ANON = ./dkAnonymity/src
-GRAPH = ${ANON}/graph
-MEAS = ${ANON}/measure
-
-anonymity :
-			g++ -std=c++11 -o  ${ANON}/anonymity ${CFLAGS} ${ANON}/anonymity.cpp ${GRAPH}/graphutil.cpp ${GRAPH}/graphgen.cpp ${MEAS}/dk-anonymity.cpp traces.o nauty.a ${LDFLAGS}
-```
-
-`WARNING`: when cleaning the nauty directory, the makefile is regenerated and these lines are deleted.\
-Last tested with nauty version `nauty27r3`
 
 # Compilation
+In teh git-directory (dkAnonymity) run the following command:
 ```
 make anonymity 
 ```
@@ -47,11 +34,11 @@ make anonymity
 To run the code, at least one input graph should be given. Command line arguments are optional.
 Use the following command to run the code:
 ```
-./dkAnonymity/src/anonymity ./examples/example2 [-arguments]
+./bin/anon ./examples/example2 [-arguments]
 ```
 For example:
 ```
-./dkAnonymity/src/anonymity ./dkAnonymity/examples/example2 -dir 1 -d 6
+./bin/anon ./examples/example2 -dir 1 -d 6
 ```
 
 ## Command line arguments
@@ -101,7 +88,7 @@ Note that test1 is an empty graph: networkx does not show these nodes. Therefore
 Examples can be generated with `visualize.py`, code to generate the examples are given in `examples.sh`
 
 # References
-[1] B. D. McKay and A. Piperno, “Practical graph isomorphism”, Journal of Symbolic Computa-tion, vol. 60, no. 0, pp. 94–112, 2014. \
-[2] de Jong, Rachel G., van der Loo, Mark P. J., & Takes, Frank W. (2023).The effect of distant connections on node anonymity in complex networks. arXiv preprint arXiv:2306.13508.
+[1] de Jong, Rachel G., Mark P. J. van der Loo, and Frank W. Takes. "Algorithms for Efficiently Computing Structural Anonymity in Complex Networks." ACM Journal of Experimental Algorithmics (2023). https://doi.org/10.1145/3604908\ \
+[2] de Jong, Rachel G., Mark P. J. van der Loo, and Frank W. Takes. "The effect of distant connections on node anonymity in complex networks." Scientific Reports 14.1 (2024): 1156.
  \
-[3] de Jong, Rachel G., Mark P. J. van der Loo, and Frank W. Takes. "Algorithms for Efficiently Computing Structural Anonymity in Complex Networks." ACM Journal of Experimental Algorithmics (2023). https://doi.org/10.1145/3604908\ <br />
+[3] B. D. McKay and A. Piperno, “Practical graph isomorphism”, Journal of Symbolic Computa-tion, vol. 60, no. 0, pp. 94–112, 2014.  <br />
