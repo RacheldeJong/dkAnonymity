@@ -23,6 +23,7 @@ Before using this code, the Nauty framework should be downloaded from: https://u
 ./configure
 make
 ```
+Last tested with nauty version `nauty27r3`.
 
 # Compilation
 In teh git-directory (dkAnonymity) run the following command:
