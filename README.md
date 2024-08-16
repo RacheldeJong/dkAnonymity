@@ -1,4 +1,4 @@
-# $d$-$k$-Anonymity
+# d-k-Anonymity
 This repository contains code to measure anonymity in complex networks as proposed in [1] and used in [2].
 Using this measure, vertices are partitioned into equivalence classes.
 Vertices are equivalent if they have the same structural position in their $d$-neighbourhood; parameter d can be used to set the radius of the neighbourhood. This framework uses Nauty [3].
@@ -88,7 +88,7 @@ Note that test1 is an empty graph: networkx does not show these nodes. Therefore
 Examples can be generated with `visualize.py`, code to generate the examples are given in `examples.sh`
 
 # References
-[1] de Jong, Rachel G., Mark P. J. van der Loo, and Frank W. Takes. "Algorithms for Efficiently Computing Structural Anonymity in Complex Networks." ACM Journal of Experimental Algorithmics (2023). https://doi.org/10.1145/3604908\ \
+[1] de Jong, Rachel G., Mark P. J. van der Loo, and Frank W. Takes. "Algorithms for Efficiently Computing Structural Anonymity in Complex Networks." ACM Journal of Experimental Algorithmics (2023). \
 [2] de Jong, Rachel G., Mark P. J. van der Loo, and Frank W. Takes. "The effect of distant connections on node anonymity in complex networks." Scientific Reports 14.1 (2024): 1156.
  \
 [3] B. D. McKay and A. Piperno, “Practical graph isomorphism”, Journal of Symbolic Computa-tion, vol. 60, no. 0, pp. 94–112, 2014.  <br />

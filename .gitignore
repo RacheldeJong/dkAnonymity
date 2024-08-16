@@ -1,6 +1,9 @@
 # Compiled program
 anonymity
 
+# Directories
+bin
+
 # Prerequisites
 *.d
 
