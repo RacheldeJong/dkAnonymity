@@ -26,9 +26,9 @@ make
 Last tested with nauty version `nauty27r3`.
 
 # Compilation
-In teh git-directory (dkAnonymity) run the following command:
+In the git-directory (dkAnonymity) run the following command:
 ```
-make anonymity 
+make 
 ```
 
 # How to run
