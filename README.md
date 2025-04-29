@@ -88,8 +88,25 @@ Folder `examples` contains some small toy examples to test the d-k-anonymity mea
 Note that test1 is an empty graph: networkx does not show these nodes. Therefore `test1` is empty
 Examples can be generated with `visualize.py`, code to generate the examples are given in `examples.sh`
 
+# Citing d-k-Anonymity
+To cite d-k-Anonymity, please use the following reference: 
+
+de Jong, Rachel G., Mark P. J. van der Loo, and Frank W. Takes. "Algorithms for Efficiently Computing Structural Anonymity in Complex Networks." ACM Journal of Experimental Algorithmics (2023).
+
+@article{dejong2023algorithms,\
+&nbsp;&nbsp;&nbsp;&nbsp;  title={Algorithms for efficiently computing structural anonymity in complex networks}, \
+&nbsp;&nbsp;&nbsp;&nbsp;  author={de Jong, Rachel G and van der Loo, Mark PJ and Takes, Frank W}, \
+&nbsp;&nbsp;&nbsp;&nbsp;  journal={ACM Journal of Experimental Algorithmics}, \
+&nbsp;&nbsp;&nbsp;&nbsp;  volume={28}, \
+&nbsp;&nbsp;&nbsp;&nbsp;  pages={1--22}, \
+&nbsp;&nbsp;&nbsp;&nbsp;  year={2023}, \
+&nbsp;&nbsp;&nbsp;&nbsp;  publisher={ACM New York, NY, USA}\
+}
+
 # References
 [1] de Jong, Rachel G., Mark P. J. van der Loo, and Frank W. Takes. "Algorithms for Efficiently Computing Structural Anonymity in Complex Networks." ACM Journal of Experimental Algorithmics (2023). \
 [2] de Jong, Rachel G., Mark P. J. van der Loo, and Frank W. Takes. "The effect of distant connections on node anonymity in complex networks." Scientific Reports 14.1 (2024): 1156.
  \
 [3] B. D. McKay and A. Piperno, “Practical graph isomorphism”, Journal of Symbolic Computa-tion, vol. 60, no. 0, pp. 94–112, 2014.  <br />
+
+
